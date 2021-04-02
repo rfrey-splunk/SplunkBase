@@ -1,10 +1,5 @@
-
 # encoding = utf-8
 
-import os
-import sys
-import time
-import datetime
 import requests
 import json
 import math
@@ -18,7 +13,7 @@ import uuid
 import time
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
-from splunklib.modularinput import *
+
 import jamf_pro_models
 
 
@@ -540,13 +535,11 @@ def collect_events(helper, ew):
         #
         # End of Advanced mobile_devices Section
         #
-        
 
-        
     elif api_call == "custom":
-
+        # Clean Up the URL
         if search_name.startswith("/"):
-            search_name = search_name.replace("/","",1)
+            search_name = search_name.replace("/", "", 1)
             
         if search_name.endswith("/"):
             search_name = search_name[:-1]
@@ -557,7 +550,7 @@ def collect_events(helper, ew):
         resp_xml = ElementTree.fromstring(api_get_Call(jss_url))
         
         if search_name.__contains__("/name/"):
-            writeStringTo_Event( resp_string )
+            writeStringTo_Event(resp_string)
             return
         else:
             children = resp_xml.getchildren()
