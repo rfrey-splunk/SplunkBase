@@ -13,7 +13,13 @@ try:
     import xml.etree.cElementTree as ElementTree
 except ImportError:
     import xml.etree.ElementTree as ElementTree
+#import xml.etree.ElementTree as ElementTree
 import uuid
+import time
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
+from splunklib.modularinput import *
+import jamf_pro_models
 
 
 '''
@@ -50,7 +56,7 @@ def collect_events(helper, ew):
     password = helper.get_arg('password',None)
     index = helper.get_arg('custom_index_name','main')
     host = helper.get_arg('custom_host_name','localhost')
-    maxCharLength = 10000
+    maxCharLength = 9500
     call_uuid = uuid.uuid4()
     
     #
@@ -64,328 +70,74 @@ def collect_events(helper, ew):
         url = url + "/"
     url = "https://" + url
     
-    
-    def writeComputerDevice (DATA): 
-        #
-        #   List of things that will be written by themselves
-        #
-        chunk_list = list()
-        chunk_list.append("computer_groups")
-        chunk_list.append("configuration_profiles")
-        chunk_list.append("software")
-        chunk_list.append("extension_attributes")
-        chunk_list.append("hardware")
-        chunk_list.append("running_services")
-        chunk_list.append("certificates")
-        chunk_list.append("location")
-        chunk_list.append("purchasing")
-        chunk_list.append("groups_accounts")
-        
-        
-        computer = ElementTree.fromstring(DATA)
-        self = ElementTree.Element("self")
-        gen = computer.find("general")
-        jss_id = gen.find("id").text
-        ElementTree.SubElement(self, 'id').text = jss_id
-        ElementTree.SubElement(self, 'link').text = url+"/JSSResource/computerdevices/"+jss_id
-        pagination = ElementTree.Element("pagination")  
-    
-        
-        for keyValue in chunk_list:
-
-            if computer.find(keyValue):
-
-                    
-                #
-                #   Sp;it Running Services Off
-                #
-                
-                keyXML = computer.find(keyValue)
-                
-                # Get the lenght of the string representation of the XML document
-                key_char_length = ElementTree.tostring(keyXML).__len__()
-                if key_char_length < maxCharLength:
-                    #
-                    #   If this is under 10k just go ahead and write to the event reader
-                    #
-                    root = ElementTree.Element("computer")
-                    
-                    chunk_ID = str(uuid.uuid4())
-                    chunk_uuid = ElementTree.Element("sub_pagination")
-                    ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                    ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(1)
-                    ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(1)
-                    root.append(chunk_uuid)
-                    pagination.append(chunk_uuid)
-                    root.append(keyXML)
-                    root.append(self)
-
-                    writeStringTo_Event( ElementTree.tostring(root) )
-                else:
-                    #
-                    #   This is the area for if the already seperated XML is still too large. It will take the Length and use MOD to give the number of XML files it would need to be cut into. I add an additional one just in c
-                    #
-                    
-                    
-                    chunk_ID = str(uuid.uuid4())
-                    num_XML = math.ceil(key_char_length / maxCharLength) + 1
-                    #
-                    #   Create an array of XML documents
-                    #
-                    
-                    if keyValue == "software":
-                    #
-                    #   Remove Running Services
-                    #
-                        remove_from_software = list()
-                        remove_from_software.append("unix_executables")
-                        remove_from_software.append("installed_by_casper")
-                        remove_from_software.append("installed_by_installer_swu")
-                        remove_from_software.append("cached_by_casper")
-                        remove_from_software.append("available_software_updates")
-                        remove_from_software.append("available_updates")
-                        remove_from_software.append("fonts")
-                        chunk_from_software = list()
-                        
-                        chunk_from_software.append('chunk_from_software')
-                        chunk_from_software.append('applications')
-                        chunk_from_software.append('running_services')
-                        
-                        #remove_from_software.append("applications")
-                    
-                        
-                        for remove in remove_from_software:
-                            if keyXML.find(remove):
-                                keyXML.remove((keyXML.find(remove)))
-                        
-                        
-                        run_service = keyXML.find("running_services")
-                        run_serv_lengt = ElementTree.tostring(run_service).__len__()
-                        run_serv_count = math.ceil(run_serv_lengt / maxCharLength) + 2
-                        root_list = []
-                        for i in range(0, int(run_serv_count)):
-                            run_root = ElementTree.Element("running_services")
-                            root_list.append(run_root)
-                        #
-                        #   Get a list of the 1st level children in the XML document keeping the same structure
-                        #
-        
-                        #   Careful about the below call it is gone after 3.7 python new list function from 3.1 was introduced need to swith the call type
-                        key_chield = run_service.getchildren()
-                        i = 0
-                        for child in key_chield:
-                            # print("inserting into array number: "+str(int(math.fmod(i,num_XML))))
-                            root_list[int(math.fmod(i, run_serv_count))].append(child)
-                            i = i + 1
-                        #
-                        #   Iterate through the finished XML documents and write to the event writer.
-                        #
-        
-                        for fin_xml in root_list:
-                            root = ElementTree.Element("computer")
-                            gen = computer.find("general")
-                            jss_id = gen.find("id").text
-                            ElementTree.SubElement(root, 'id').text = jss_id
-        
-                            root.append(fin_xml)
-                            chunk_uuid = ElementTree.Element("sub_pagination")
-                            ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                            ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(i)
-                            ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(root_list.__len__())
-                            root.append(chunk_uuid)
-                            writeStringTo_Event( ElementTree.tostring(root) )
-                        chunk_uuid = ElementTree.Element("sub_pagination")
-                        ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                        ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(i)
-                        ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(root_list.__len__())
-                        pagination.append(chunk_uuid)
-                        
-                        keyXML.remove(run_service)
-                    #
-                    #   End Removing Running Services
-                    #
-                    
-                    
-                    
-                    root_list = []
-                    for i in range(0, int(num_XML)):
-                        root = ElementTree.Element(keyValue)
-                        root_list.append(root)
-                    #
-                    #   Get a list of the 1st level children in the XML document keeping the same structure
-                    #
-    
-                    #   Careful about the below call it is gone after 3.7 python new list function from 3.1 was introduced need to swith the call type
-                    key_chield = keyXML.getchildren()
-                    i = 0
-                    for child in key_chield:
-                        # print("inserting into array number: "+str(int(math.fmod(i,num_XML))))
-                        root_list[int(math.fmod(i, num_XML))].append(child)
-                        i = i + 1
-                    #
-                    #   Iterate through the finished XML documents and write to the event writer.
-                    #
-    
-                    for fin_xml in root_list:
-                        root = ElementTree.Element("computer")
-                        gen = computer.find("general")
-                        jss_id = gen.find("id").text
-                        ElementTree.SubElement(root, 'id').text = jss_id
-
-                        root.append(fin_xml)
-                        chunk_uuid = ElementTree.Element("sub_pagination")
-                        ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-
-                        root.append(chunk_uuid)
-                        writeStringTo_Event( ElementTree.tostring(root) )
-                    chunk_uuid = ElementTree.Element("sub_pagination")
-                    ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-
-                    pagination.append(chunk_uuid)
-                    
-
-                #
-                #   Remove the Key Index field from the XML
-                #
-                
-                computer.remove(keyXML)
-        #
-        # What's Left
-        #
-        self.append(pagination)
-        computer.append(self)
-        writeStringTo_Event(ElementTree.tostring(computer))
-    #
-    #   Done with Parsing computer Devices
-    #
-    
-    
-    def writeMobileDevice (DATA): 
-        #
-        #   List of things that will be written by themselves
-        #
-        chunk_list = list()
-        chunk_list.append("mobile_device_groups")
-        chunk_list.append("configuration_profiles")
-        chunk_list.append("applications")
-        chunk_list.append("extension_attributes")
-        
-        mobile_device = ElementTree.fromstring(DATA)
-        self = ElementTree.Element("self")
-        gen = mobile_device.find("general")
-        jss_id = gen.find("id").text
-        ElementTree.SubElement(self, 'id').text = jss_id
-        ElementTree.SubElement(self, 'link').text = url+"/JSSResource/mobiledevices/"+jss_id
-        pagination = ElementTree.Element("pagination")  
-    
-        
-        for keyValue in chunk_list:
-
-            if mobile_device.find(keyValue):
-                keyXML = mobile_device.find(keyValue)
-                # Get the lenght of the string representation of the XML document
-                key_char_length = ElementTree.tostring(keyXML).__len__()
-                if key_char_length < maxCharLength:
-                    #
-                    #   If this is under 10k just go ahead and write to the event reader
-                    #
-                    root = ElementTree.Element("mobile_device")
-                    
-                    chunk_ID = str(uuid.uuid4())
-                    chunk_uuid = ElementTree.Element("sub_pagination")
-                    ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                    ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(1)
-                    ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(1)
-                    root.append(chunk_uuid)
-                    pagination.append(chunk_uuid)
-                    root.append(keyXML)
-                    root.append(self)
-
-                    writeStringTo_Event( ElementTree.tostring(root) )
-                else:
-                    #
-                    #   This is the area for if the already seperated XML is still too large. It will take the Length and use MOD to give the number of XML files it would need to be cut into. I add an additional one just in c
-                    #
-                    chunk_ID = str(uuid.uuid4())
-                    num_XML = math.ceil(key_char_length / maxCharLength) + 1
-                    #
-                    #   Create an array of XML documents
-                    #
-                    root_list = []
-                    for i in range(0, int(num_XML)):
-                        root = ElementTree.Element(keyValue)
-                        root_list.append(root)
-                    #
-                    #   Get a list of the 1st level children in the XML document keeping the same structure
-                    #
-    
-                    #   Careful about the below call it is gone after 3.7 python new list function from 3.1 was introduced need to swith the call type
-                    key_chield = keyXML.getchildren()
-                    i = 0
-                    for child in key_chield:
-                        # print("inserting into array number: "+str(int(math.fmod(i,num_XML))))
-                        root_list[int(math.fmod(i, num_XML))].append(child)
-                        i = i + 1
-                    #
-                    #   Iterate through the finished XML documents and write to the event writer.
-                    #
-    
-                    for fin_xml in root_list:
-                        root = ElementTree.Element("mobile_device")
-                        gen = mobile_device.find("general")
-                        jss_id = gen.find("id").text
-                        ElementTree.SubElement(root, 'id').text = jss_id
-
-                        root.append(fin_xml)
-                        chunk_uuid = ElementTree.Element("sub_pagination")
-                        ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                        ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(i)
-                        ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(root_list.__len__())
-                        root.append(chunk_uuid)
-                        writeStringTo_Event( ElementTree.tostring(root) )
-                    chunk_uuid = ElementTree.Element("sub_pagination")
-                    ElementTree.SubElement(chunk_uuid, 'uuid').text = chunk_ID
-                    ElementTree.SubElement(chunk_uuid, 'chunk_number').text = str(i)
-                    ElementTree.SubElement(chunk_uuid, 'chunk_size').text = str(root_list.__len__())
-                    pagination.append(chunk_uuid)
-                    
-
-                #
-                #   Remove the Key Index field from the XML
-                #
-                
-                mobile_device.remove(keyXML)
-        #
-        # What's Left
-        #
-        self.append(pagination)
-        mobile_device.append(self)
-        writeStringTo_Event(ElementTree.tostring(mobile_device))
-    #
-    #   Done with Parsing Mobile Devices
-    #
         
     def writeStringTo_Event_withParsing (DATA):
-        if DATA.__len__() <maxCharLength:
-            writeStringTo_Event( DATA )
+        root = ElementTree.fromstring(DATA)
+        if root.tag == "computer":
+            jamf_computer = jamf_pro_models.jamf_pro_computer()
+            jamf_computer.build_from_string(DATA,"computer")
+            string_list = jamf_computer.paginate(create_event_id=True,max_char_length=maxCharLength)
+            for line in string_list:
+                writeStringTo_Event(line)
+            #writeStringTo_Event(DATA)
+        elif root.tag == "mobile_device":
+            jamf_mobile = jamf_pro_models.jamf_pro_mobile_device()
+            jamf_mobile.build_from_string(DATA,"mobile_device")
+            string_list = jamf_mobile.paginate(create_event_id=True)
+            for line in string_list:
+                writeStringTo_Event(line)
+        elif root.tag == "mac_application":
+            macapplication = jamf_pro_models.MacApplication()
+            macapplication.build_from_string(DATA,"JSSResource")
+            string_list = macapplication.paginate()
+            for line in string_list:
+                writeStringTo_Event(line)
         else:
-            if DATA.__contains__("<mobile_device>"):
-                writeMobileDevice(DATA)
-            if DATA.__contains__("<computer>"):
-                writeComputerDevice (DATA)
+            data = ElementTree.fromstring(DATA)
+            #writeStringTo_Event(ElementTree.tostring(data))
+            writeStringTo_Event(DATA)
             
-    
     def writeStringTo_Event( event_string ):
         #
         #   This class is to help with the writing to the Splunk Event writer
         #   
         #
         if event_string.__len__() < maxCharLength:
-                event = helper.new_event(data=event_string, index=index, host=host)
+            xml_event = ElementTree.fromstring(event_string)
+            event = helper.new_event(data=ElementTree.tostring(xml_event,encoding="utf-8", method="xml").decode(), index=index, host=host)
+            #event = helper.new_event(data=event_string, index=index, host=host)
+            ew.write_event(event)
+            return True
+        else:
+            root = ElementTree.Element("Error")
+            ElementTree.SubElement(root, 'error').text = "The XML was too long"
+            writeStringTo_Event( ElementTree.tostring(root) )
+            root = ElementTree.fromstring(event_string)
+            children = root.getchildren
+            
+            debug = True
+            if debug:
+                event = helper.new_event(data=str(event_string.__len__()), index=index, host=host)
+                ew.write_event(event)
+            
+            #for n in children
+            #    writeStringTo_Event(ElementTree.tostring(n))
+            #for self in root.find('self'):
+                #writeStringTo_Event( ElementTree.tostring(self))
+
+        return False
+        
+    def writeStringTo_Event_wTime( event_string, event_time ):
+        #
+        #   This class is to help with the writing to the Splunk Event writer
+        #   
+        #
+        if event_string.__len__() < maxCharLength:
+                event = helper.new_event(data=str(event_string), index=index, host=host, time = event_time)
                 ew.write_event(event)
                 return True
         else:
-            root = ElementTree.Element("XML_TooLong")
+            root = ElementTree.Element("Error")
             ElementTree.SubElement(root, 'error').text = "The XML was too long"
             writeStringTo_Event( ElementTree.tostring(root) )
             
@@ -441,7 +193,7 @@ def collect_events(helper, ew):
                         #   Bad request. Verify the syntax of the request specifically the XML body.
                         pass
                     if (status_code == 401):
-                        root = ElementTree.Element("XML_TooLong")
+                        root = ElementTree.Element("Error")
                         ElementTree.SubElement(root, 'error').text = "API Auth Error"
                         writeStringTo_Event( ElementTree.tostring(root) )
                         context = ElementTree.Element("error")
@@ -463,20 +215,20 @@ def collect_events(helper, ew):
                 except requests.exceptions.Timeout:
                     isDone = isDone + 1
                     if isDone > 3:
-                        root = ElementTree.Element("XML_TooLong")
+                        root = ElementTree.Element("Error")
                         ElementTree.SubElement(root, 'error').text = "Too Many Timeouts"
                         writeStringTo_Event( ElementTree.tostring(root) )
                         context = ElementTree.Element("error")
                     pass
                 except requests.exceptions.TooManyRedirects:
-                    root = ElementTree.Element("XML_TooLong")
+                    root = ElementTree.Element("Error")
                     ElementTree.SubElement(root, 'error').text = "Too Many Redirects"
                     writeStringTo_Event( ElementTree.tostring(root) )
                     context = ElementTree.Element("error")
                     pass
         
                 except requests.exceptions.RequestException as e:
-                    root = ElementTree.Element("XML_TooLong")
+                    root = ElementTree.Element("Error")
                     ElementTree.SubElement(root, 'error').text = "API Error Request Exception"
                     writeStringTo_Event( ElementTree.tostring(root) )
                     context = ElementTree.Element("error")
@@ -493,10 +245,6 @@ def collect_events(helper, ew):
         
         
 
-    # Log that we are beginning to retrieve data.
-    helper.log_debug("Started retrieving data for user %s" % username)
-    
-    #helper.log_debug(response.content)
     if api_call == "computer":
         #
         #   make the API Call
@@ -796,14 +544,7 @@ def collect_events(helper, ew):
 
         
     elif api_call == "custom":
-        #
-        #   is By ITER or by single call
-        #
-        
-        #
-        #   URL Clean up stuff
-        #
-        
+
         if search_name.startswith("/"):
             search_name = search_name.replace("/","",1)
             
@@ -817,12 +558,6 @@ def collect_events(helper, ew):
         
         if search_name.__contains__("/name/"):
             writeStringTo_Event( resp_string )
-            return
-        elif search_name.__contains__("/id/"):
-            if search_name.__contains__("/computers/"):
-                writeComputerDevice( resp_string )
-            else:
-                writeStringTo_Event( resp_string )
             return
         else:
             children = resp_xml.getchildren()
