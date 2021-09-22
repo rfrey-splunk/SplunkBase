@@ -45,7 +45,7 @@ class jamf_pro_computer:
 
     def paginate(self, *args, **kwargs):
         """
-        This function is used in the Splunk Event writer to ensure you don't over runt he Max Char limit
+        This function is used in the Splunk Event writer to ensure you don't overrun the Max Char limit
         :param args:
         :param kwargs:
         :param max_char_length int. This is the max length the event writer can write to.
@@ -157,7 +157,7 @@ class jamf_pro_mobile_device:
 
     def build_from_string(self, mobile_device, source_type):
         """
-        This funciton builds the object from a String Representation of the object
+        This function builds the object from a String Representation of the object
         :param mobile_device: The STR reprsentation of the object
         :param source_type: mobile_device
         :return: None
@@ -187,7 +187,7 @@ class jamf_pro_mobile_device:
 
     def paginate(self, *args, **kwargs):
         """
-        This function is used in the Splunk Event writer to ensure you don't over runt he Max Char limit
+        This function is used in the Splunk Event writer to ensure you don't overrun the Max Char limit
         :param args:
         :param kwargs:
         :param max_char_length int. This is the max length the event writer can write to.
@@ -335,7 +335,7 @@ class MacApplication:
         for elem in context.iter():
             for child in list(elem):
                 if child.tag in remove_list:
-                    print("Found it")
+                    # self.helper.log_debug("Found it")
                     elem.remove(child)
                     remove_list.remove(child.tag)
 

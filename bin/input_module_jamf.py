@@ -109,17 +109,10 @@ def collect_events(helper, ew):
             ew.write_event(event)
             return True
         else:
-            root = ElementTree.Element("Error")
-            ElementTree.SubElement(root, 'error').text = "The XML was too long"
-            writeStringTo_Event( ElementTree.tostring(root) )
+            helper.log_error("The XML event data returned by the API is xml_event_chars=%d in length which exceeded max_char_limit=%d.", (event_string.__len__, maxCharLength))
             root = ElementTree.fromstring(event_string)
             children = root.getchildren
-            
-            debug = True
-            if debug:
-                event = helper.new_event(data=str(event_string.__len__()), index=index, host=host)
-                ew.write_event(event)
-            
+
             #for n in children
             #    writeStringTo_Event(ElementTree.tostring(n))
             #for self in root.find('self'):
@@ -137,19 +130,10 @@ def collect_events(helper, ew):
                 ew.write_event(event)
                 return True
         else:
-            root = ElementTree.Element("Error")
-            ElementTree.SubElement(root, 'error').text = "The XML was too long"
-            writeStringTo_Event( ElementTree.tostring(root) )
-            
-            
+            helper.log_error("The XML event data returned by the API is xml_event_chars=%d in length which exceeded max_char_limit=%d.", (event_string.__len__, maxCharLength))
             root = ElementTree.fromstring(event_string)
             children = root.getchildren
-            
-            debug = True
-            if debug:
-                event = helper.new_event(data=str(event_string.__len__()), index=index, host=host)
-                ew.write_event(event)
-            
+                        
             #for n in children
             #    writeStringTo_Event(ElementTree.tostring(n))
             #for self in root.find('self'):
@@ -178,59 +162,62 @@ def collect_events(helper, ew):
             while not isDone:
                 try:
                     
+                    req_duration_start = time.time()
                     r =  requests.get(endPoint, auth=(username, password), headers={'Accept': 'application/xml'}, verify=False)
+                    req_duration = (time.time() - req_duration_start)
                     status_code = r.status_code
                     resp = r.content
                     # https://developer.jamf.com/documentation for status code information
                     if (status_code == 200):
                         #   Request successful
+                        helper.log_debug("Request successful, recieved status_code=%d for request=%s in duration_secs=%f.", (status_code, endPoint, req_duration))
                         isDone = True
                         context = r.content
                     if (status_code == 201):
                         #   Request to create or update object successful
+                        helper.log_debug("Request to create or update object successful, received status_code=%d for request=%s in duration_secs=%f. ", (status_code, endPoint, req_duration))
                         context = r.content
                     if (status_code == 400):
                         #   Bad request. Verify the syntax of the request specifically the XML body.
-                        pass
+                        helper.log_error("Bad API request, recieved status_code=%d for request=%s in duration_secs=%f. Please verify the syntax of the request specifically the XML body.", (status_code, endPoint, req_duration))
                     if (status_code == 401):
                         root = ElementTree.Element("Error")
                         ElementTree.SubElement(root, 'error').text = "API Auth Error"
-                        writeStringTo_Event( ElementTree.tostring(root) )
+                        helper.log_error("API authentication error, recieved status_code=%d for request=%s in duration_secs=%f.", (status_code, endPoint, req_duration))
                         context = ElementTree.Element("error")
                         isDone = True
-                        pass
                     if (status_code == 403):
                         #   Invalid permissions. Verify the account being used has the proper permissions for the object/resource you are trying to access.
-                        pass
+                        helper.log_error("Invalid permissions, recieved status_code=%d for request=%s in duration_secs=%f. Please verify the account being used has the proper permissions for the object/resource you are trying to access.", (status_code, endPoint, req_duration))
                     if (status_code == 404):
                         #   Object or resouce is not found
-                        pass
+                        helper.log_error("Object or resouce is not found, recieved status_code=%d for request=%s in duration_secs=%f.", (status_code, endPoint, req_duration))
                     if (status_code == 409):
                         #   Conflict
-                        pass
+                        helper.log_error("Conflict encountered, recieved status_code=%d for request=%s in duration_secs=%f.", (status_code, endPoint, req_duration))
                     if (status_code == 500):
                         #   Internal server error. Retry the request or contact Jamf support if the error is persistent.
-                        pass
+                        helper.log_error("Internal server error, recieved status_code=%d for request=%s in duration_secs=%f. Retry the request or contact Jamf support if the error is persistent.", (status_code, endPoint, req_duration))
                     
                 except requests.exceptions.Timeout:
                     isDone = isDone + 1
                     if isDone > 3:
                         root = ElementTree.Element("Error")
                         ElementTree.SubElement(root, 'error').text = "Too Many Timeouts"
-                        writeStringTo_Event( ElementTree.tostring(root) )
+                        helper.log_exception("Too Many Timeouts.")
                         context = ElementTree.Element("error")
                     pass
                 except requests.exceptions.TooManyRedirects:
                     root = ElementTree.Element("Error")
                     ElementTree.SubElement(root, 'error').text = "Too Many Redirects"
-                    writeStringTo_Event( ElementTree.tostring(root) )
+                    helper.log_exception("Too Many Redirects.")
                     context = ElementTree.Element("error")
                     pass
         
                 except requests.exceptions.RequestException as e:
                     root = ElementTree.Element("Error")
                     ElementTree.SubElement(root, 'error').text = "API Error Request Exception"
-                    writeStringTo_Event( ElementTree.tostring(root) )
+                    helper.log_exception("API Error Request Exception.")
                     context = ElementTree.Element("error")
                     pass
                 finally:
