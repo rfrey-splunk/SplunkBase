@@ -1,0 +1,782 @@
+{
+    "meta": {
+        "name": "JAMF-Pro-addon-for-splunk",
+        "displayName": "Jamf Pro Add-on",
+        "version": "1.0.10",
+        "apiVersion": "3.0.0",
+        "restRoot": "JAMF_Pro_addon_for_splunk",
+        "schemaVersion": "0.0.2"
+    },
+    "pages": {
+        "configuration": {
+            "title": "Configuration",
+            "description": "Set up your add-on",
+            "tabs": [
+                {
+                    "name": "account",
+                    "title": "Account",
+                    "table": {
+                        "header": [
+                            {
+                                "field": "name",
+                                "label": "Account name"
+                            },
+                            {
+                                "field": "username",
+                                "label": "Username"
+                            }
+                        ],
+                        "actions": [
+                            "edit",
+                            "delete",
+                            "clone"
+                        ]
+                    },
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Account name",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter a unique name for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 50,
+                                    "errorMsg": "Length of Account name should be between 1 and 50"
+                                },
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Account name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "username",
+                            "label": "Username",
+                            "type": "text",
+                            "required": true,
+                            "help": "Enter the username for this account.",
+                            "options": {
+                                "placeholder": "Enter the username here"
+                            },
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200,
+                                    "errorMsg": "Length of username should be between 1 and 200"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "required": true,
+                            "help": "Enter the password for this account.",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Length of password should be between 1 and 8192"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "proxy",
+                    "title": "Proxy",
+                    "entity": [
+                        {
+                            "field": "proxy_enabled",
+                            "label": "Enable",
+                            "type": "checkbox"
+                        },
+                        {
+                            "field": "proxy_type",
+                            "label": "Proxy Type",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "http",
+                                        "value": "http"
+                                    },
+                                    {
+                                        "label": "socks4",
+                                        "value": "socks4"
+                                    },
+                                    {
+                                        "label": "socks5",
+                                        "value": "socks5"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "http"
+                        },
+                        {
+                            "field": "proxy_url",
+                            "label": "Host",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 4096,
+                                    "errorMsg": "Max host length is 4096"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_port",
+                            "label": "Port",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "number",
+                                    "range": [
+                                        1,
+                                        65535
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_username",
+                            "label": "Username",
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 50,
+                                    "errorMsg": "Max length of username is 50"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_password",
+                            "label": "Password",
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of password is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "proxy_rdns",
+                            "label": "Remote DNS resolution",
+                            "type": "checkbox"
+                        }
+                    ],
+                    "options": {
+                        "saveValidator": "function(formData) { if(!formData.proxy_enabled || formData.proxy_enabled === '0') {return true; } if(!formData.proxy_url) { return 'Proxy Host can not be empty'; } if(!formData.proxy_port) { return 'Proxy Port can not be empty'; } return true; }"
+                    }
+                },
+                {
+                    "name": "logging",
+                    "title": "Logging",
+                    "entity": [
+                        {
+                            "field": "loglevel",
+                            "label": "Log level",
+                            "type": "singleSelect",
+                            "options": {
+                                "disableSearch": true,
+                                "autoCompleteFields": [
+                                    {
+                                        "label": "DEBUG",
+                                        "value": "DEBUG"
+                                    },
+                                    {
+                                        "label": "INFO",
+                                        "value": "INFO"
+                                    },
+                                    {
+                                        "label": "WARNING",
+                                        "value": "WARNING"
+                                    },
+                                    {
+                                        "label": "ERROR",
+                                        "value": "ERROR"
+                                    },
+                                    {
+                                        "label": "CRITICAL",
+                                        "value": "CRITICAL"
+                                    }
+                                ]
+                            },
+                            "defaultValue": "INFO"
+                        }
+                    ]
+                }
+            ]
+        },
+        "inputs": {
+            "title": "Inputs",
+            "description": "Manage your data inputs",
+            "table": {
+                "header": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    }
+                ],
+                "moreInfo": [
+                    {
+                        "field": "name",
+                        "label": "Name"
+                    },
+                    {
+                        "field": "interval",
+                        "label": "Interval"
+                    },
+                    {
+                        "field": "index",
+                        "label": "Index"
+                    },
+                    {
+                        "field": "disabled",
+                        "label": "Status"
+                    },
+                    {
+                        "field": "name_of_the_modular_input",
+                        "label": "Name of the Modular Input"
+                    },
+                    {
+                        "field": "jss_url",
+                        "label": "JSS URL"
+                    },
+                    {
+                        "field": "username",
+                        "label": "Username"
+                    },
+                    {
+                        "field": "password",
+                        "label": "Password"
+                    },
+                    {
+                        "field": "api_call",
+                        "label": "API Call Name"
+                    },
+                    {
+                        "field": "search_name",
+                        "label": "Search Name"
+                    },
+                    {
+                        "field": "custom_host_name",
+                        "label": "Custom Host Name"
+                    },
+                    {
+                        "field": "custom_index_name",
+                        "label": "Custom Index Name"
+                    },
+                    {
+                        "field": "jss_username",
+                        "label": "Username"
+                    },
+                    {
+                        "field": "jss_password",
+                        "label": "Password"
+                    },
+                    {
+                        "field": "excludeNoneManaged",
+                        "label": "Exclude Non Managed Devices"
+                    },
+                    {
+                        "field": "sections",
+                        "label": "Sections"
+                    },
+                    {
+                        "field": "days_since_contact",
+                        "label": "Days Since Contact"
+                    },
+                    {
+                        "field": "event_time_format",
+                        "label": "Event Time format"
+                    },
+                    {
+                        "field": "host_as_device_name",
+                        "label": "Host as Device Name"
+                    },
+                    {
+                        "field": "use_proxy",
+                        "label": "Use proxy"
+                    }
+                ],
+                "actions": [
+                    "edit",
+                    "enable",
+                    "delete",
+                    "clone"
+                ]
+            },
+            "services": [
+                {
+                    "name": "jamf",
+                    "title": "jamf",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "type": "text",
+                            "required": true,
+                            "help": "Time interval of input in seconds.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$",
+                                    "errorMsg": "Interval must be an integer."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "name_of_the_modular_input",
+                            "label": "Name of the Modular Input",
+                            "help": "Unique Input Name for the data ",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "jss_url",
+                            "label": "JSS URL",
+                            "help": "Base URL for JAMF instance",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "username",
+                            "label": "Username",
+                            "help": "",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "password",
+                            "label": "Password",
+                            "help": "",
+                            "required": true,
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of password is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "api_call",
+                            "label": "API Call Name",
+                            "help": "API Call Name",
+                            "required": true,
+                            "type": "radio",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "computer",
+                                        "label": "Computers"
+                                    },
+                                    {
+                                        "value": "mobile_device",
+                                        "label": "Mobile Devices"
+                                    },
+                                    {
+                                        "value": "custom",
+                                        "label": "Custom API"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "search_name",
+                            "label": "Search Name",
+                            "help": "Preconfigured Advanced Search to call or Custom API call, refer to documentation",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "custom_host_name",
+                            "label": "Custom Host Name",
+                            "help": "",
+                            "required": false,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "custom_index_name",
+                            "label": "Custom Index Name",
+                            "help": "",
+                            "required": false,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "jamfcomputers",
+                    "title": "JamfComputers",
+                    "entity": [
+                        {
+                            "field": "name",
+                            "label": "Name",
+                            "type": "text",
+                            "help": "Enter a unique name for the data input",
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^[a-zA-Z]\\w*$",
+                                    "errorMsg": "Input Name must start with a letter and followed by alphabetic letters, digits or underscores."
+                                },
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100,
+                                    "errorMsg": "Length of input name should be between 1 and 100"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "interval",
+                            "label": "Interval",
+                            "type": "text",
+                            "required": true,
+                            "help": "Time interval of input in seconds.",
+                            "validators": [
+                                {
+                                    "type": "regex",
+                                    "pattern": "^\\-[1-9]\\d*$|^\\d*$",
+                                    "errorMsg": "Interval must be an integer."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "index",
+                            "label": "Index",
+                            "type": "singleSelect",
+                            "defaultValue": "default",
+                            "options": {
+                                "endpointUrl": "data/indexes",
+                                "createSearchChoice": true,
+                                "denyList": "^_.*$"
+                            },
+                            "required": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 80,
+                                    "errorMsg": "Length of index name should be between 1 and 80."
+                                }
+                            ]
+                        },
+                        {
+                            "field": "name_of_the_modular_input",
+                            "label": "Name of the Modular Input",
+                            "help": "",
+                            "required": false,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "Name"
+                            }
+                        },
+                        {
+                            "field": "jss_url",
+                            "label": "JSS URL",
+                            "help": "",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "jss_username",
+                            "label": "Username",
+                            "help": "",
+                            "required": true,
+                            "type": "text",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "jss_password",
+                            "label": "Password",
+                            "help": "",
+                            "required": true,
+                            "type": "text",
+                            "encrypted": true,
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of password is 8192"
+                                }
+                            ]
+                        },
+                        {
+                            "field": "excludeNoneManaged",
+                            "label": "Exclude Non Managed Devices",
+                            "help": "If a device is not managed Exclude it",
+                            "required": false,
+                            "type": "checkbox",
+                            "defaultValue": true
+                        },
+                        {
+                            "field": "sections",
+                            "label": "Sections",
+                            "help": "General and User_and_Location are included by default: Excluded are Fonts, Services, Package Receipts, Content Caching, iBeacons, Plugins, and Attachments.",
+                            "required": false,
+                            "type": "multipleSelect",
+                            "defaultValue": "PURCHASING~APPLICATIONS~HARDWARE~OPERATING_SYSTEM~EXTENSION_ATTRIBUTES~GROUP_MEMBERSHIPS~SECURITY",
+                            "options": {
+                                "delimiter": "~",
+                                "items": [
+                                    {
+                                        "value": "DISK_ENCRYPTION",
+                                        "label": "Disk Encryption"
+                                    },
+                                    {
+                                        "value": "PURCHASING",
+                                        "label": "Purchasing"
+                                    },
+                                    {
+                                        "value": "APPLICATIONS",
+                                        "label": "Applications"
+                                    },
+                                    {
+                                        "value": "STORAGE",
+                                        "label": "Disk Information"
+                                    },
+                                    {
+                                        "value": "PRINTERS",
+                                        "label": "Printers"
+                                    },
+                                    {
+                                        "value": "HARDWARE",
+                                        "label": "Hardware"
+                                    },
+                                    {
+                                        "value": "LOCAL_USER_ACCOUNTS",
+                                        "label": "Local User Accounts"
+                                    },
+                                    {
+                                        "value": "CERTIFICATES",
+                                        "label": "Certificates"
+                                    },
+                                    {
+                                        "value": "SECURITY",
+                                        "label": "Security"
+                                    },
+                                    {
+                                        "value": "OPERATING_SYSTEM",
+                                        "label": "Operating System"
+                                    },
+                                    {
+                                        "value": "LICENSED_SOFTWARE",
+                                        "label": "Licensed Software"
+                                    },
+                                    {
+                                        "value": "SOFTWARE_UPDATES",
+                                        "label": "Software Updates"
+                                    },
+                                    {
+                                        "value": "EXTENSION_ATTRIBUTES",
+                                        "label": "Extension Attributes"
+                                    },
+                                    {
+                                        "value": "GROUP_MEMBERSHIPS",
+                                        "label": "Group Memberships"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "days_since_contact",
+                            "label": "Days Since Contact",
+                            "help": "Exclude devices that haven't been contacted in the above days. Suggest 7, 14, 30, 90 days. Refer to your own environment. \n\n0 = Unlimited",
+                            "required": false,
+                            "type": "text",
+                            "defaultValue": "0",
+                            "validators": [
+                                {
+                                    "type": "string",
+                                    "minLength": 0,
+                                    "maxLength": 8192,
+                                    "errorMsg": "Max length of text input is 8192"
+                                }
+                            ],
+                            "options": {
+                                "placeholder": "0"
+                            }
+                        },
+                        {
+                            "field": "event_time_format",
+                            "label": "Event Time format",
+                            "help": "Write the \"TIME\" field as either when the device inventoried, was last contacted, or when the Script runs",
+                            "required": false,
+                            "type": "radio",
+                            "defaultValue": "timeAsScript",
+                            "options": {
+                                "items": [
+                                    {
+                                        "value": "timeAsScript",
+                                        "label": "Time as Script Run"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "field": "host_as_device_name",
+                            "label": "Host as Device Name",
+                            "help": "Writes the devices name as the Host Name.",
+                            "required": false,
+                            "type": "checkbox",
+                            "defaultValue": true
+                        },
+                        {
+                            "field": "use_proxy",
+                            "label": "Use proxy",
+                            "help": "Use the System or Per-App Proxy",
+                            "required": false,
+                            "type": "checkbox"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
