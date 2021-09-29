@@ -56,7 +56,8 @@ def collect_events(helper, ew):
     password = helper.get_arg('password',None)
     index = helper.get_arg('custom_index_name','main')
     host = helper.get_arg('custom_host_name','localhost')
-    maxCharLength = 9500
+    # maxCharLength = 9500
+    maxCharLength = 100000
     call_uuid = uuid.uuid4()
     
     #
